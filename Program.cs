@@ -1,75 +1,76 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 class Author
 {
-    public string name { get; set; }
-    public int birth_year { get; set; }
+    public string Name { get; }
+    public int BirthYear { get; }
 
-    public Author(string name, int birth_year)
+    public Author(string name, int birthYear)
     {
-        this.name = name;
-        this.birth_year = birth_year;
+        Name = name;
+        BirthYear = birthYear;
     }
 
     public string GetInfo()
     {
-        return $"Iм'я: {name}, рiк народження: {birth_year}";
+        return $"Ім'я: {Name}, Рік народження: {BirthYear}";
     }
 }
 
 class Book
 {
-    public string title { get; set; }
-    public Author author { get; }
-    public int year { get; set; }
-    public string annotation { get; set; }
+    public string Title { get; }
+    public Author Author { get; }
+    public int Year { get; }
+    public string Annotation { get; }
 
     public Book(string title, Author author, int year, string annotation = "")
     {
-        this.title = title;
-        this.author = author;
-        this.year = year;
-        this.annotation = annotation;
+        Title = title;
+        Author = author;
+        Year = year;
+        Annotation = annotation;
     }
 
     public string GetInfo()
     {
-        string info = $"Назва: {title}, Рік видання: {year}, Автор: {author.name}";
-        if (IsNullOrEmpty(annotation))
-            info += $"\n{annotation}";
+        string info = $"Назва: {Title}, Рік видання: {Year}, Автор: {Author.Name}";
+        if (!string.IsNullOrEmpty(Annotation))
+            info += $"\n{Annotation}";
         return info;
     }
 }
 
 class Library
 {
-    public string name { get; set; }
-    private List<Book> books;
+    public string Name { get; }
+    private List<Book> Books;
 
     public Library(string name)
     {
-        this.name = name;
-        books = new List<Book>();
+        Name = name;
+        Books = new List<Book>();
     }
 
     public void AddBook(Book book)
     {
-        if (books.Any(b => b.title == book.title && b.author.name == book.author.name))
+        if (Books.Any(b => b.Title == book.Title && b.Author.Name == book.Author.Name))
         {
             Console.WriteLine("Ця книга вже є у бібліотеці!");
             return;
         }
 
-        books.Add(book);
-        Console.WriteLine($"Додано книгу: {book.title}");
+        Books.Add(book);
+        Console.WriteLine($"Додано книгу: {book.Title}");
     }
 
     public void RemoveBook(Book book)
     {
-        if (books.Remove(book))
+        if (Books.Remove(book))
         {
-            Console.WriteLine($"Книга {book.title} видалена.");
+            Console.WriteLine($"Книга \"{book.Title}\" видалена.");
         }
         else
         {
@@ -77,47 +78,61 @@ class Library
         }
     }
 
-    public List<Book> FindBooksByYear(int year)
-    {
-        return books.Where(book => book.year == year).ToList();
-    }
-
-    public List<Book> FindBooksByKeyword(string keyword)
-    {
-        return books.Where(book => book.title.Contains(keyword, StringComparison.OrdinalIgnoreCase)).ToList();
-    }
-
     public void ListBooks()
     {
-        foreach (var book in books)
+        if (Books.Count == 0)
+        {
+            Console.WriteLine("Бібліотека порожня.");
+            return;
+        }
+
+        Console.WriteLine($"Книги в бібліотеці \"{Name}\":");
+        foreach (var book in Books)
         {
             Console.WriteLine(book.GetInfo());
         }
+    }
+
+    public List<Book> FindBooksByAuthor(string authorName)
+    {
+        return Books.Where(book => book.Author.Name.Equals(authorName, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    public List<Book> FindBooksByYear(int year)
+    {
+        return Books.Where(book => book.Year == year).ToList();
     }
 }
 
 class Reader
 {
-    public string Name { get; set; }
-    private List<Book> borrowedBooks;
+    public string Name { get; }
+    private List<Book> BorrowedBooks;
 
     public Reader(string name)
     {
         Name = name;
-        borrowedBooks = new List<Book>();
+        BorrowedBooks = new List<Book>();
     }
 
-    public void BorrowBook(Book book)
+    public void BorrowBook(Book book, Library library)
     {
-        borrowedBooks.Add(book);
-        Console.WriteLine($"{Name} взяв книгу: {book.title}");
+        if (library.FindBooksByYear(book.Year).Contains(book))
+        {
+            BorrowedBooks.Add(book);
+            Console.WriteLine($"{Name} взяв книгу: {book.Title}");
+        }
+        else
+        {
+            Console.WriteLine($"Книги \"{book.Title}\" немає у бібліотеці!");
+        }
     }
 
     public void ReturnBook(Book book)
     {
-        if (borrowedBooks.Remove(book))
+        if (BorrowedBooks.Remove(book))
         {
-            Console.WriteLine($"{Name} повернув книгу: {book.title}");
+            Console.WriteLine($"{Name} повернув книгу: {book.Title}");
         }
         else
         {
@@ -127,8 +142,14 @@ class Reader
 
     public void ListBorrowedBooks()
     {
+        if (BorrowedBooks.Count == 0)
+        {
+            Console.WriteLine($"{Name} не має жодної книги.");
+            return;
+        }
+
         Console.WriteLine($"Книги, які {Name} орендував:");
-        foreach (var book in borrowedBooks)
+        foreach (var book in BorrowedBooks)
         {
             Console.WriteLine(book.GetInfo());
         }
@@ -139,33 +160,28 @@ class Program
 {
     static void Main()
     {
+        Library library = new Library("Місцева бібліотека");
+
         Author author1 = new Author("Біллі Джин", 1944);
         Author author2 = new Author("Ямана Ядара", 1980);
 
-        Book book1 = new Book("Джин", author1, 1991, "мрія про розпад");
-        Book book2 = new Book("Матік", author2, 1999, "поле битви.");
+        Book book1 = new Book("Джин", author1, 1991, "Мрія про розпад");
+        Book book2 = new Book("Матік", author2, 1999, "Поле битви.");
         Book book3 = new Book("Багрян", author2, 1979);
-        Book book4 = new Book("Багрян", author2, 1979);
 
-        Library library = new Library("Місцева бібліотека");
         library.AddBook(book1);
         library.AddBook(book2);
         library.AddBook(book3);
-        library.AddBook(book4);
+
         library.ListBooks();
 
-        Console.WriteLine("\nПошук книг за роком 1991:");
-        var foundBooks = library.FindBooksByYear(1991);
-        foreach (var book in foundBooks)
-            Console.WriteLine(book.GetInfo());
-
-        Console.WriteLine("\nПошук книг за ключовим словом 'Мітік':");
-        foundBooks = library.FindBooksByKeyword("Матік");
+        Console.WriteLine("\nПошук книг за автором Ямана Ядара:");
+        var foundBooks = library.FindBooksByAuthor("Ямана Ядара");
         foreach (var book in foundBooks)
             Console.WriteLine(book.GetInfo());
 
         Reader reader = new Reader("Кум");
-        reader.BorrowBook(book1);
+        reader.BorrowBook(book1, library);
         reader.ListBorrowedBooks();
         reader.ReturnBook(book1);
         reader.ListBorrowedBooks();
